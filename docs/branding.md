@@ -88,6 +88,7 @@ repository `.env` loader (`scripts/lib/public-config.ts`) used by builds. Common
 | `UPCOMPUTER_HOME`                            | `T3CODE_HOME`                        |
 | `UPCOMPUTER_PORT`                            | `T3CODE_PORT`                        |
 | `UPCOMPUTER_TELEMETRY_ENABLED`               | `T3CODE_TELEMETRY_ENABLED`           |
+| `UPCOMPUTER_WEB_STRICT_CSP`                  | `T3CODE_WEB_STRICT_CSP`              |
 | `UPCOMPUTER_DISABLE_AUTO_UPDATE`             | `T3CODE_DISABLE_AUTO_UPDATE`         |
 | `UPCOMPUTER_DESKTOP_UPDATE_REPOSITORY`       | `T3CODE_DESKTOP_UPDATE_REPOSITORY`   |
 | `UPCOMPUTER_RELAY_URL`, `UPCOMPUTER_CLERK_*` | `T3CODE_RELAY_URL`, `T3CODE_CLERK_*` |

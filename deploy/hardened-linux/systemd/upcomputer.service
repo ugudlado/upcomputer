@@ -1,0 +1,33 @@
+[Unit]
+Description=Up.computer server (tailnet only, egress allowlisted)
+After=network-online.target tailscaled.service upc-egress.service upc-dns.service upc-sni.service
+Wants=network-online.target
+Requires=upc-egress.service
+Wants=upc-dns.service upc-sni.service
+
+[Service]
+User=upc
+Group=upc
+WorkingDirectory=/home/upc/work
+Environment=HOME=/home/upc
+Environment=PATH=/opt/node/bin:/usr/local/bin:/usr/bin:/bin
+Environment=T3CODE_TELEMETRY_ENABLED=false
+Environment=T3CODE_WEB_STRICT_CSP=true
+Environment=OTEL_SDK_DISABLED=true
+Environment=T3CODE_OTEL_SDK_DISABLED=true
+ExecStart=/opt/node/bin/node /opt/upcomputer/apps/server/dist/bin.mjs serve --host 127.0.0.1 --port 3773 --base-dir /home/upc/.upcomputer --no-browser /home/upc/work
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/home/upc /tmp
+ProtectHome=tmpfs
+BindPaths=/home/upc
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

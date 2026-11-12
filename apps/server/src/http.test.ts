@@ -238,7 +238,10 @@ describe("untraced requests", () => {
 
 const layerFileResponse = Layer.mergeAll(NodeHttpPlatform.layer, NodeServices.layer);
 
-const makeStaticRequest = Effect.fn("HttpTest.makeStaticRequest")(function* (staticDir: string) {
+const makeStaticRequest = Effect.fn("HttpTest.makeStaticRequest")(function* (
+  staticDir: string,
+  overrides: Partial<ServerConfig.ServerConfig["Service"]> = {},
+) {
   const config = yield* ServerConfig.ServerConfig;
   const fileSystem = yield* FileSystem.FileSystem;
   const layerApp = Layer.merge(
@@ -248,7 +251,7 @@ const makeStaticRequest = Effect.fn("HttpTest.makeStaticRequest")(function* (sta
   // HttpRouter.serve prefers outer services; inject the test FileSystem between it and NodeHttpServer.layerTest.
   const services = yield* Layer.build(
     HttpRouter.serve(layerApp, { disableListenLog: true }).pipe(
-      Layer.provideMerge(ServerConfig.layer({ ...config, staticDir })),
+      Layer.provideMerge(ServerConfig.layer({ ...config, staticDir, ...overrides })),
       Layer.provideMerge(Layer.succeed(FileSystem.FileSystem, fileSystem)),
       Layer.provideMerge(NodeHttpServer.layerTest),
     ),
@@ -443,6 +446,29 @@ it.layer(
       expect(head.status).toBe(200);
       expect(head.headers["content-length"]).toBe(String(Buffer.byteLength(nextHtml)));
       expect(yield* head.text).toBe("");
+    }),
+  );
+
+  it.effect("sends the strict CSP on the app shell only when enabled", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const staticDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-static-csp-" });
+      yield* fs.writeFileString(path.join(staticDir, "index.html"), "<html>shell</html>");
+      yield* fs.writeFileString(path.join(staticDir, "app.js"), "console.log(1);");
+      const strict = yield* makeStaticRequest(staticDir, { webStrictCsp: true });
+      const open = yield* makeStaticRequest(staticDir);
+
+      for (const resource of ["/", "/index.html", "/threads/example"]) {
+        const csp = (yield* strict(resource)).headers["content-security-policy"];
+        expect(csp).toContain("default-src 'self'");
+        expect(csp).toContain("img-src 'self' data: blob:");
+        expect(csp).toContain("connect-src 'self' data: blob:");
+        expect(csp).toContain("frame-ancestors 'self'");
+        expect(csp).not.toMatch(/https?:/);
+        expect((yield* open(resource)).headers["content-security-policy"]).toBeUndefined();
+      }
+      expect((yield* strict("/app.js")).headers["content-security-policy"]).toBeUndefined();
     }),
   );
 

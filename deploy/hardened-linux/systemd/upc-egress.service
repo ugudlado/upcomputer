@@ -1,0 +1,10 @@
+[Unit]
+Description=Egress allowlist firewall for the upc user
+Before=upcomputer.service
+After=network-pre.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/upc-egress-apply
+[Install]
+WantedBy=multi-user.target

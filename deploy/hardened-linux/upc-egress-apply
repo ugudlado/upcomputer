@@ -1,0 +1,79 @@
+#!/bin/sh
+# Builds the upc egress controls from /etc/upc-egress/allowlist.txt:
+#  - dnsmasq on 127.0.0.2 resolves only allowlisted domains for upc
+#  - nginx (stream, ssl_preread) on 127.0.0.1:8443 forwards upc's TLS only when the SNI is allowlisted
+#  - nftables sends all of upc's TCP 443 to that proxy and drops every other outbound packet
+set -eu
+dir=/etc/upc-egress
+domains=$(grep -v '^#' $dir/allowlist.txt | tr -s ' \t\n' '\n' | grep . | sort -u)
+slashed=$(echo "$domains" | tr '\n' '/')
+
+{
+  echo "listen-address=127.0.0.2"
+  echo "bind-interfaces"
+  echo "port=53"
+  echo "no-resolv"
+  echo "no-hosts"
+  echo "cache-size=1000"
+  echo "log-queries"
+  echo "log-facility=/var/log/upc-dns.log"
+  echo "server=/${slashed}127.0.0.53"
+} > $dir/dnsmasq.conf
+
+{
+  echo "load_module /usr/lib/nginx/modules/ngx_stream_module.so;"
+  echo "user www-data;"
+  echo "worker_processes 1;"
+  echo "pid /run/upc-sni.pid;"
+  echo "error_log /var/log/upc-sni-error.log warn;"
+  echo "events { worker_connections 1024; }"
+  echo "stream {"
+  echo "  resolver 127.0.0.53 valid=60s ipv6=on;"
+  echo "  resolver_timeout 5s;"
+  echo "  map \$ssl_preread_server_name \$upc_upstream {"
+  echo "    default 127.0.0.1:9;"
+  for d in $domains; do
+    esc=$(echo "$d" | sed 's/\./\\./g')
+    echo "    ~^([a-z0-9-]+\\.)*${esc}\$ \$ssl_preread_server_name:443;"
+  done
+  echo "  }"
+  echo "  log_format sni '\$time_local \$remote_addr sni=\$ssl_preread_server_name upstream=\$upc_upstream status=\$status sent=\$bytes_sent recv=\$bytes_received';"
+  echo "  access_log /var/log/upc-sni.log sni;"
+  echo "  server {"
+  echo "    listen 127.0.0.1:8443;"
+  echo "    listen [::1]:8443;"
+  echo "    ssl_preread on;"
+  echo "    proxy_connect_timeout 10s;"
+  echo "    proxy_pass \$upc_upstream;"
+  echo "  }"
+  echo "}"
+} > $dir/nginx.conf
+/usr/sbin/nginx -t -c $dir/nginx.conf -q
+
+cat > $dir/rules.nft <<'NFT'
+table inet upc_egress
+delete table inet upc_egress
+table inet upc_egress {
+  chain nat_out {
+    type nat hook output priority -100;
+    meta skuid "upc" udp dport 53 dnat ip to 127.0.0.2:53
+    meta skuid "upc" tcp dport 53 dnat ip to 127.0.0.2:53
+    meta skuid "upc" tcp dport 443 redirect to :8443
+  }
+  chain out {
+    type filter hook output priority 0; policy accept;
+    meta skuid != "upc" accept
+    ct state established,related accept
+    icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, nd-router-solicit } accept
+    ip daddr 127.0.0.1 tcp dport 8443 accept
+    ip6 daddr ::1 tcp dport 8443 accept
+    oifname "lo" ip daddr 127.0.0.2 meta l4proto { tcp, udp } th dport 53 accept
+    oifname "lo" tcp dport { 9, 22, 631, 4369, 8090, 8911, 47984-48010 } counter drop
+    oifname "lo" ip daddr 127.0.0.0/8 meta l4proto { tcp, udp } th dport != 53 accept
+    oifname "lo" ip6 daddr ::1 meta l4proto { tcp, udp } th dport != 53 accept
+    limit rate 20/second log prefix "upc-egress-drop " counter
+    counter reject
+  }
+}
+NFT
+nft -f $dir/rules.nft

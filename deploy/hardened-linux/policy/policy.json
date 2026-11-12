@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "organization": "Hardened self-hosted box",
+  "limits": {
+    "telemetry": false,
+    "connect": false,
+    "webhookTasks": false,
+    "browserCookieImport": false,
+    "updates": { "mode": "off" },
+    "providers": { "allowedDrivers": ["codex"] }
+  }
+}

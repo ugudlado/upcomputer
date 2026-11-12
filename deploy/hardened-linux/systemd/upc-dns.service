@@ -1,0 +1,10 @@
+[Unit]
+Description=Allowlist DNS for the upc user
+After=upc-egress.service network-online.target
+Requires=upc-egress.service
+Before=upcomputer.service
+[Service]
+ExecStart=/usr/sbin/dnsmasq -k --conf-file=/etc/upc-egress/dnsmasq.conf
+Restart=always
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=SNI allowlist proxy for the upc user
+After=upc-egress.service network-online.target
+Requires=upc-egress.service
+Before=upcomputer.service
+[Service]
+ExecStartPre=/usr/sbin/nginx -t -q -c /etc/upc-egress/nginx.conf
+ExecStart=/usr/sbin/nginx -c /etc/upc-egress/nginx.conf -g "daemon off;"
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+[Install]
+WantedBy=multi-user.target
