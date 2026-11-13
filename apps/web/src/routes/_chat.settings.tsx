@@ -1,13 +1,21 @@
 import { workspaceAreaProps } from "../lib/workspaceFocus";
-import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
+import {
+  Navigate,
+  Outlet,
+  createFileRoute,
+  redirect,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import { RotateCcwIcon } from "lucide-react";
+import { ChevronLeftIcon, RotateCcwIcon } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { useSettingsRestore } from "../components/settings/SettingsPanels";
 
 import { AppRouteModal, AppRouteModalClose } from "../components/AppRouteModal";
 import { SettingsBreadcrumb } from "../components/settings/SettingsBreadcrumb";
 import { SettingsSidebarNav } from "../components/settings/SettingsSidebarNav";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useShownPathname } from "../hooks/useShownPathname";
 import {
   SettingsScopeProvider,
@@ -117,13 +125,34 @@ function SettingsContentLayout() {
       ? environment?.environmentId
       : JSON.stringify(search);
   const [restoreSignal, setRestoreSignal] = useState(0);
+  const navigate = useNavigate();
+  const isPhone = useMediaQuery("max-sm");
+  const isSectionList = location.pathname === "/settings";
+  const showBackButton = isPhone && !isSectionList;
+
+  if (isSectionList && !isPhone) {
+    return <Navigate to="/settings/general" search hash replace />;
+  }
 
   return (
     <AppRouteModal label="Settings">
       <div className="relative flex min-h-0 flex-1">
-        <SettingsSidebarNav pathname={location.pathname} />
+        {isPhone ? null : <SettingsSidebarNav pathname={location.pathname} />}
         <div {...contentArea} className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="flex h-12 shrink-0 items-center gap-3 border-b ps-5 pe-2">
+          <header
+            className={`flex h-12 shrink-0 items-center gap-3 border-b pe-2 ${showBackButton ? "ps-1" : "ps-5"}`}
+          >
+            {showBackButton ? (
+              <Button
+                size="icon-xl"
+                variant="ghost"
+                className="shrink-0"
+                aria-label="Back to settings"
+                onClick={() => void navigate({ to: "/settings", hash: "", search: true })}
+              >
+                <ChevronLeftIcon />
+              </Button>
+            ) : null}
             <SettingsBreadcrumb pathname={location.pathname} />
             <div className="ms-auto flex shrink-0 items-center gap-1">
               {location.pathname === "/settings/general" ? (
@@ -134,15 +163,22 @@ function SettingsContentLayout() {
               <AppRouteModalClose />
             </div>
           </header>
-          <div key={`${contentScopeKey}:${restoreSignal}`} className="min-h-0 flex flex-1 flex-col">
-            {/* UpComputer: until a page's lazy chunk has loaded on its first visit, the
+          {isPhone && isSectionList ? (
+            <SettingsSidebarNav pathname={location.pathname} sectionList />
+          ) : (
+            <div
+              key={`${contentScopeKey}:${restoreSignal}`}
+              className="min-h-0 flex flex-1 flex-col"
+            >
+              {/* UpComputer: until a page's lazy chunk has loaded on its first visit, the
                 outlet still holds the previous page, which must not sit under this header. */}
-            {shownPathname === location.pathname ? (
-              <SettingsScopeBoundary pathname={location.pathname}>
-                <Outlet />
-              </SettingsScopeBoundary>
-            ) : null}
-          </div>
+              {shownPathname === location.pathname ? (
+                <SettingsScopeBoundary pathname={location.pathname}>
+                  <Outlet />
+                </SettingsScopeBoundary>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </AppRouteModal>
@@ -180,7 +216,7 @@ export const Route = createFileRoute("/_chat/settings")({
   validateSearch: validateSettingsRouteSearch,
   search: { middlewares: [retainSettingsScope] },
   beforeLoad: async ({ location }) => {
-    if (location.pathname === "/settings") {
+    if (location.pathname === "/settings" && !window.matchMedia("(max-width: 639px)").matches) {
       throw redirect({ to: "/settings/general", replace: true });
     }
     const moved = movedSettingsPath(location.pathname, location.hash);

@@ -131,7 +131,13 @@ function SettingsSectionIcon({ to }: { to: SettingsPath }) {
   return <Icon className="size-4 shrink-0 text-(--sidebar-icon-color)" />;
 }
 
-export function SettingsSidebarNav({ pathname }: { pathname: string }) {
+export function SettingsSidebarNav({
+  pathname,
+  sectionList = false,
+}: {
+  pathname: string;
+  sectionList?: boolean;
+}) {
   const navArea = workspaceAreaProps("settings-nav", 0, "Settings sections");
   const navigate = useNavigate();
   const currentHash = useLocation({ select: (location) => location.hash });
@@ -148,6 +154,8 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
   const [query, setQuery] = useState("");
   // Below md the nav is an icon rail; searching expands it over the page.
   const [compactSearchOpen, setCompactSearchOpen] = useState(false);
+  // On phones the sections are a full-width list of their own, so labels never collapse to icons.
+  const labelsShown = compactSearchOpen || sectionList;
   const [activeResultIndex, setActiveResultIndex] = useState(0);
   const searchableItems = useAvailableSettingsSearchItems(scopeSearch);
   const results = searchSettings(query, searchableItems);
@@ -263,7 +271,10 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
       role="navigation"
       className={cn(
         "flex w-60 shrink-0 flex-col border-e bg-sidebar text-sidebar-foreground max-md:w-14",
+        sectionList &&
+          "min-h-0 w-full flex-1 border-e-0 max-md:w-full [&_[data-sidebar=menu-button]]:h-11",
         compactSearchOpen &&
+          !sectionList &&
           "max-md:absolute max-md:inset-y-0 max-md:start-0 max-md:z-10 max-md:w-full",
       )}
     >
@@ -273,7 +284,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
             <div
               className={cn(
                 "flex h-8 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground",
-                !compactSearchOpen && "max-md:hidden",
+                !labelsShown && "max-md:hidden",
               )}
             >
               <SearchIcon className="size-4 shrink-0 text-sidebar-muted-foreground/80" />
@@ -369,7 +380,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
               </SidebarMenu>
             ) : (
               <div className="flex flex-col gap-4">
-                {compactSearchOpen ? null : (
+                {labelsShown ? null : (
                   <SidebarMenu className="md:hidden">
                     <SidebarMenuItem>
                       <SidebarMenuButton
@@ -400,7 +411,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                           aria-hidden="true"
                           className={cn(
                             "px-2 text-xs font-medium text-sidebar-muted-foreground/80",
-                            !compactSearchOpen && "max-md:hidden",
+                            !labelsShown && "max-md:hidden",
                           )}
                         >
                           {group.heading}
@@ -427,9 +438,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
                                 onClick={() => handleSectionClick(to)}
                               >
                                 <Icon />
-                                <span
-                                  className={cn("truncate", !compactSearchOpen && "max-md:sr-only")}
-                                >
+                                <span className={cn("truncate", !labelsShown && "max-md:sr-only")}>
                                   {SETTINGS_SECTION_LABELS[to]}
                                 </span>
                               </SidebarMenuButton>
@@ -449,7 +458,7 @@ export function SettingsSidebarNav({ pathname }: { pathname: string }) {
           </div>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="max-md:hidden">
+      <SidebarFooter className={cn(!sectionList && "max-md:hidden")}>
         <Suspense fallback={null}>
           <T3ConnectSidebarSignIn />
         </Suspense>

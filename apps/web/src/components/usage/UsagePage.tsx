@@ -366,12 +366,16 @@ export function UsagePage() {
       ? `${formatDateTimeShort(shownWindow.sinceTime, shownWindow.timeZone, hour12)} to ${formatDateTimeShort(shownWindow.untilTime, shownWindow.timeZone, hour12)}`
       : `${formatDayShort(shownWindow.sinceDay)} to ${formatDayShort(shownWindow.untilDay)}`;
   const topbarContent = (
-    <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-2 @4xl/usage-header:flex">
-      <WorkspaceBreadcrumb ariaLabel="Usage breadcrumb" className="min-w-0">
-        <WorkspaceBreadcrumbItem>
+    <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 py-2 @4xl/usage-header:flex @4xl/usage-header:items-center">
+      <WorkspaceBreadcrumb
+        ariaLabel="Usage breadcrumb"
+        className="min-w-0"
+        listClassName="@max-xl/usage-header:flex-wrap @max-xl/usage-header:gap-y-1"
+      >
+        <WorkspaceBreadcrumbItem className="@max-xl/usage-header:basis-full">
           <h1>Usage</h1>
         </WorkspaceBreadcrumbItem>
-        <WorkspaceBreadcrumbSeparator />
+        <WorkspaceBreadcrumbSeparator className="@max-xl/usage-header:hidden" />
         <WorkspaceBreadcrumbItem className="min-w-10 shrink">
           <UsageEnvironmentFilter
             environments={environments}
@@ -386,7 +390,7 @@ export function UsagePage() {
             onOpenModelPrices={() => setPriceDialog({})}
           />
         </WorkspaceBreadcrumbItem>
-        <WorkspaceBreadcrumbSeparator />
+        <WorkspaceBreadcrumbSeparator className="@max-xl/usage-header:hidden" />
         <WorkspaceBreadcrumbItem current className="min-w-10">
           <UsageProviderFilter
             hiddenProviders={hiddenProviders}
@@ -512,7 +516,7 @@ export function UsagePage() {
   return (
     <AppRouteModal label="Usage">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="@container/usage-header flex min-h-12 shrink-0 items-center gap-1 border-b ps-5 pe-2">
+        <header className="@container/usage-header flex min-h-12 shrink-0 items-center gap-1 border-b ps-5 pe-2 max-sm:items-start">
           {topbarContent}
           <AppRouteModalClose />
         </header>

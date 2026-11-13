@@ -133,6 +133,25 @@
 }
 
 /*
+ * On a short window (a phone in landscape) the footer would cover the rows at rest,
+ * so it stays in the column below the scroll instead of over it.
+ */
+@media (max-height: 520px) {
+  [data-sidebar-compact="false"] [data-app-sidebar] [data-sidebar="sidebar"] {
+    --sidebar-scroll-bottom: 0px;
+  }
+  [data-sidebar-compact="false"]
+    [data-app-sidebar]
+    [data-sidebar="sidebar"]
+    > [data-sidebar="footer"] {
+    position: relative;
+    inset: auto;
+    flex-shrink: 0;
+    padding-bottom: max(var(--sidebar-content-inset), env(safe-area-inset-bottom));
+  }
+}
+
+/*
  * The thread list is left out; the Threads section keeps only New thread. The
  * full sidebar draws Threads in the list, so the column shows its own copy.
  */
