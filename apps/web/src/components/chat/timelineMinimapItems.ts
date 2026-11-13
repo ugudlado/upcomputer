@@ -1,4 +1,4 @@
-import { parseThreadLinkHref } from "@t3tools/shared/threadLinks";
+import { parsePageThreadLinkHref } from "~/threadLinks/threadLinkOrigin";
 import { isAttachmentOnlyBootstrapPrompt } from "@t3tools/shared/composerContextReferences";
 import type { Nodes } from "mdast";
 import remarkGfm from "remark-gfm";
@@ -86,7 +86,7 @@ function markdownNodeText(node: Nodes): string {
   const separator = INLINE_PARENT_TYPES.has(node.type) ? "" : " ";
   const text = node.children.map(markdownNodeText).join(separator);
   // A thread autolink's only text is its URL.
-  return node.type === "link" && parseThreadLinkHref(text) !== null ? "a thread" : text;
+  return node.type === "link" && parsePageThreadLinkHref(text) !== null ? "a thread" : text;
 }
 
 function compactMinimapPreview(text: string | null | undefined) {

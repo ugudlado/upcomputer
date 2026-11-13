@@ -41,8 +41,8 @@ export function hostedThreadLink(ref: ScopedThreadRef, origin = UPCOMPUTER_HOSTE
 
 const HOSTED_PATH = new RegExp(`^(${HOSTED_SEGMENT})/(${HOSTED_SEGMENT})$`);
 
-function parseHostedThreadLink(href: string): ThreadLink | null {
-  const match = HOSTED_PATH.exec(href.slice(HOSTED_PREFIX.length));
+function parseHostedThreadLink(href: string, prefix: string): ThreadLink | null {
+  const match = HOSTED_PATH.exec(href.slice(prefix.length));
   if (!match) return null;
   try {
     const environmentId = Option.getOrNull(decodeEnvironmentId(decodeURIComponent(match[1]!)));
@@ -55,10 +55,15 @@ function parseHostedThreadLink(href: string): ThreadLink | null {
 
 /**
  * The ids as written. Thread ids can hold percent escapes of their own, so they are not decoded,
- * except in a hosted link, which escapes them itself.
+ * except in a hosted link, which escapes them itself. `ownOrigin` is a self-hosted app's own
+ * origin, whose thread links read like the hosted app's.
  */
-export function parseThreadLinkHref(href: string): ThreadLink | null {
-  if (href.startsWith(HOSTED_PREFIX)) return parseHostedThreadLink(href);
+export function parseThreadLinkHref(href: string, ownOrigin?: string): ThreadLink | null {
+  if (href.startsWith(HOSTED_PREFIX)) return parseHostedThreadLink(href, HOSTED_PREFIX);
+  if (ownOrigin !== undefined && URL.canParse(ownOrigin)) {
+    const ownPrefix = `${new URL(ownOrigin).origin}/threads/`;
+    if (href.startsWith(ownPrefix)) return parseHostedThreadLink(href, ownPrefix);
+  }
   if (href.startsWith(V1_PREFIX)) {
     const threadId = Option.getOrNull(decodeThreadId(href.slice(V1_PREFIX.length)));
     return threadId === null ? null : { environmentId: null, threadId };

@@ -6,7 +6,6 @@ import {
 import { clerkFrontendApiUrlFromPublishableKey } from "@t3tools/shared/relayAuth";
 import { isRelayTracingEnabled } from "@t3tools/shared/otelEnvironment";
 import { normalizeSecureRelayUrl } from "@t3tools/shared/relayUrl";
-import { UPCOMPUTER_HOSTED_APP_URL } from "@t3tools/shared/upcomputerIdentity";
 import * as Config from "effect/Config";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
@@ -115,11 +114,11 @@ export const hostedAppUrlConfig = makePublicValueConfig(
   DEFAULT_HOSTED_APP_URL,
 ).pipe(Config.mapEffect(validateHostedAppUrl));
 
-// UpComputer: thread links default to the hosted app; the default above is the site, which serves no threads.
-export const threadLinkAppUrlConfig = makePublicValueConfig(
-  "T3CODE_HOSTED_APP_URL",
-  UPCOMPUTER_HOSTED_APP_URL,
-).pipe(Config.mapEffect(validateHostedAppUrl));
+// UpComputer: the default above is the site, which serves no threads. Without an explicit hosted app, agent-facing thread links stay `t3-thread://`.
+export const threadLinkAppUrlConfig = makePublicValueConfig("T3CODE_HOSTED_APP_URL", "").pipe(
+  Config.mapEffect(validateHostedAppUrl),
+  Config.option,
+);
 
 function validateHostedAppUrl(value: string) {
   try {

@@ -201,6 +201,27 @@ describe("hosted thread links", () => {
     expect(parseThreadLinkHref("https://evil.test/threads/env-1/thread-1")).toBeNull();
   });
 
+  it("reads a thread link on the page's own origin besides the hosted one", () => {
+    const own = "https://box.example.test:8443";
+    const thread = ref("env-1", "thread:a/1");
+    const link = hostedThreadLink(thread, own);
+    expect(link.startsWith("https://box.example.test:8443/threads/")).toBe(true);
+    expect(parseThreadLinkHref(link, own)).toEqual(thread);
+    expect(parseThreadLinkHref(link, `${own}/`)).toEqual(thread);
+    expect(parseThreadLinkHref(link)).toBeNull();
+    expect(parseThreadLinkHref(`${own}/threads/env-1/thread-1?x=1`, own)).toBeNull();
+    expect(
+      parseThreadLinkHref("https://other.example.test/threads/env-1/thread-1", own),
+    ).toBeNull();
+    expect(parseThreadLinkHref("https://app.up.computer/threads/env-1/thread-1", own)).toEqual(
+      ref("env-1", "thread-1"),
+    );
+    expect(parseThreadLinkHref("t3-thread://v2/env-1/thread-1", own)).toEqual(
+      ref("env-1", "thread-1"),
+    );
+    expect(parseThreadLinkHref(link, "not a url")).toBeNull();
+  });
+
   it("writes a copied link a reader can follow, labeled when it has a title", () => {
     expect(formatHostedThreadLink(ref("e", "t1"), "Fix [ci]")).toBe(
       "[Fix ci](https://app.up.computer/threads/e/t1)",

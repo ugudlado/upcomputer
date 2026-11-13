@@ -99,6 +99,7 @@ describe("link round trips", () => {
       repository: { owner: "pingdotgg", name: "t3code" },
       provider: "claudeAgent",
       model: "opus",
+      origin: "https://app.up.computer",
     });
     expect(new URL(link).origin).toBe("https://app.up.computer");
     const path = promptLinkAppPath(link);
@@ -107,6 +108,14 @@ describe("link round trips", () => {
     expect(parsed.ok && parsed.value.kind === "new" && parsed.value.prompt.text).toBe(
       "Swear count & rating?",
     );
+  });
+
+  it("builds a link on the given origin that the same origin opens in the app", () => {
+    const origin = "https://box.example.test:8443";
+    const link = buildNewThreadLink({ prompt: "hi", origin });
+    expect(link).toBe(`${origin}/new?prompt=hi`);
+    expect(promptLinkAppPath(link, origin)).toBe("/new?prompt=hi");
+    expect(promptLinkAppPath(link)).toBeNull();
   });
 
   it("opens a copied thread link in the app at that thread", () => {

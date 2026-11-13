@@ -12,6 +12,7 @@ import {
   type PromptLinkRepository,
 } from "@t3tools/shared/promptLinks";
 
+import { threadLinkOrigin } from "~/threadLinks/threadLinkOrigin";
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
 import { writeTextToClipboard } from "~/hooks/useCopyToClipboard";
 
@@ -29,9 +30,7 @@ export function promptLinkFor(
 ): string | null {
   const trimmed = isAttachmentOnlyBootstrapPrompt(prompt) ? "" : prompt.trim();
   if (trimmed.length === 0 || trimmed.length > PROMPT_LINK_MAX_PROMPT_LENGTH) return null;
-  // Without a configured hosted app (desktop and local builds) the link points at app.up.computer.
-  const origin = import.meta.env.VITE_HOSTED_APP_URL?.trim();
-  return buildNewThreadLink({ prompt: trimmed, ...context, ...(origin ? { origin } : {}) });
+  return buildNewThreadLink({ prompt: trimmed, ...context, origin: threadLinkOrigin() });
 }
 
 export function promptLinkRepositoryOf(

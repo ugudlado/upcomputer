@@ -17,7 +17,6 @@ import {
   mcpClientScopes,
   type RuntimeMode,
 } from "@t3tools/contracts";
-import { UPCOMPUTER_HOSTED_APP_URL } from "@t3tools/shared/upcomputerIdentity";
 import { encodeOAuthScope } from "@t3tools/shared/oauthScope";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -582,10 +581,11 @@ export const layerMcpClientAuthenticator = Layer.effect(
     const environment = yield* ServerEnvironment.ServerEnvironment;
     const environmentId = yield* environment.getEnvironmentId;
     const hostedAppUrl = yield* threadLinkAppUrlConfig.pipe(
+      Effect.map(Option.getOrUndefined),
       Effect.catch((cause) =>
-        Effect.logWarning("Outside MCP clients get default hosted app thread links", {
-          cause,
-        }).pipe(Effect.as(UPCOMPUTER_HOSTED_APP_URL)),
+        Effect.logWarning("Outside MCP clients get t3-thread links", { cause }).pipe(
+          Effect.as(undefined),
+        ),
       ),
     );
     return McpHttpServer.McpClientAuthenticator.of({
@@ -603,7 +603,7 @@ export const layerMcpClientAuthenticator = Layer.effect(
                     label: client.label,
                     access: client.access,
                     linked: client.peerLink,
-                    ...(client.peerLink ? {} : { hostedAppUrl }),
+                    ...(client.peerLink || hostedAppUrl === undefined ? {} : { hostedAppUrl }),
                   },
                   capabilities: new Set<McpInvocationContext.McpCapability>([
                     "orchestration",
